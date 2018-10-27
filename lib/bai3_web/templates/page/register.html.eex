@@ -1,0 +1,10 @@
+<%= if @error != "" do %>
+<div style="color: red">
+    <%= @error %>
+</div>
+<% end %>
+<form action="/register" method="get">
+    Username: <input type="text" name="username" /><br/>
+    Hasło: <input type="password" name="password" /><br/>
+    <input type="submit" value="Rejestruj" />
+</form>
