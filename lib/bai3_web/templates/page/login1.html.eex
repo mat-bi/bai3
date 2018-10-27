@@ -9,7 +9,7 @@ Hasło: <br/>
 <form method="get">
 <input type="hidden" value="<%= @username %>" name="username"/>
 <%= for x <- 0..16 do %>
-    <input type="password" maxlength="1" name="password[<%= x %>]"
+    <input type="password" style="width: 20px" maxlength="1" name="password[<%= x %>]"
     <%= if x not in @subsequence do %> disabled="true" <% end %> />
 <% end %>
 <input type="submit" value="zaloguj" />

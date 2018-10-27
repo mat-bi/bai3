@@ -19,6 +19,7 @@ defmodule Bai3Web.Router do
     get "/", PageController, :index
     get "/register", PageController, :register
     get "/login", PageController, :login
+    get "/logout", PageController, :logout
   end
 
   # Other scopes may use custom stacks.

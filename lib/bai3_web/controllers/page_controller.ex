@@ -1,8 +1,10 @@
 defmodule Bai3Web.PageController do
   use Bai3Web, :controller
 
+  plug :check_logged when action in [:index]
+
   def index(conn, _params) do
-    render conn, "index.html"
+    render conn, "index.html", username: get_session(conn, :username)
   end
 
   def login(conn, %{"username" => username, "password" => password}) do
@@ -27,6 +29,12 @@ defmodule Bai3Web.PageController do
     render conn, "login.html"
   end
 
+  def logout(conn, _) do
+    conn
+      |> clear_session
+      |> redirect(to: "/login")
+  end
+
   def register(conn, %{"username" => username, "password" => password}) do
     if String.length(password) < 8 or String.length(password) > 16 do
       render conn, "register.html", error: "Zła długość hasła!"
@@ -38,5 +46,15 @@ defmodule Bai3Web.PageController do
 
   def register(conn, _) do
     render conn, "register.html", error: ""
+  end
+
+  defp check_logged(conn, _) do
+    if !is_nil(get_session(conn, :username)) do
+      conn
+    else
+      conn
+        |> redirect(to: "/login")
+        |> halt()
+    end
   end
 end
