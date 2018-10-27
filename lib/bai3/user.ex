@@ -56,7 +56,7 @@ defmodule Bai3.User do
     |> Enum.map(fn subsequence -> 
       { subsequence, Enum.reduce(subsequence, "", fn el, pass ->
         pass <> String.at(password, el)
-      end) }
+      end) |> Bcrypt.hash_pwd_salt() }
     end)
   end
 end

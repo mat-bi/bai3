@@ -42,6 +42,7 @@ defmodule Bai3.Mixfile do
       {:gettext, "~> 0.11"},
       {:cowboy, "~> 1.0"},
       {:plug_cowboy, "~> 1.0"},
+      {:bcrypt_elixir, "~> 1.0"}
     ]
   end
 
