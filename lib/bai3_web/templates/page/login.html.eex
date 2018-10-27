@@ -2,4 +2,5 @@ Zaloguj: <br/>
 <form method="get">
   Username: <input type="text" name="username" /> <br/>
   <input type="submit" value="Zaloguj">
-</form>
+</form><br/>
+<a href="/register">Rejestracja</a>

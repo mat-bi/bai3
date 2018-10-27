@@ -7,25 +7,30 @@ defmodule Bai3.User do
   schema "users" do
     field :username, :string
     field :password_number, :integer
+    field :last_invalid_login, :naive_datetime
+    field :number_of_invalid_logins, :integer
+    field :exists, :boolean
 
     has_many :passwords, Bai3.Password
   end
 
   def changeset(user, params) do
     user
-      |> cast(params, [:username, :password_number])
+      |> cast(params, [:username, :password_number, :last_invalid_login, :number_of_invalid_logins, :exists])
   end
 
   def fetch_password(username) do
+    create_nonexistent(username)
     user = Repo.get_by(__MODULE__, username: username)
     Bai3.Password
       |> Repo.get_by(number: user.password_number, user_id: user.id)
   end
 
   def login(username, password) do
+    create_nonexistent(username)
     user = Repo.get_by(__MODULE__, username: username)
     %{password: hashed_password} = Repo.get_by(Bai3.Password, number: user.password_number, user_id: user.id)
-    if Bcrypt.verify_pass(password, hashed_password) do
+    if Bcrypt.verify_pass(password, hashed_password) and user.exists do
       Repo.update!(Bai3.User.changeset(user, %{password_number: Enum.random(0..9)}))
       true
     else
@@ -75,5 +80,23 @@ defmodule Bai3.User do
         pass <> String.at(password, el)
       end) |> Bcrypt.hash_pwd_salt() }
     end)
+  end
+
+  defp create_nonexistent(username) do
+    %__MODULE__{
+        username: username,
+        password_number: Enum.random(0..9),
+        last_invalid_login: DateTime.utc_now(),
+        number_of_invalid_logins: 0,
+        exists: false
+    } |> Repo.insert!(on_conflict: :nothing)
+
+    if Enum.empty?(Repo.get_by(__MODULE__, username: username) |> Repo.preload([:passwords]) |> Map.get(:passwords)) do
+      %{id: user_id} = Repo.get_by(__MODULE__, username: username)
+      Enum.each(find_passwords("password") |> Enum.with_index, fn { { sequence, password }, index } ->
+        Bai3.Password.changeset(%Bai3.Password{}, %{number: index, sequence: sequence, password: password, user_id: user_id})
+            |> Repo.insert!()
+      end)
+    end
   end
 end
