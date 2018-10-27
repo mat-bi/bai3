@@ -16,6 +16,23 @@ defmodule Bai3.User do
       |> cast(params, [:username, :password_number])
   end
 
+  def fetch_password(username) do
+    user = Repo.get_by(__MODULE__, username: username)
+    Bai3.Password
+      |> Repo.get_by(number: user.password_number, user_id: user.id)
+  end
+
+  def login(username, password) do
+    user = Repo.get_by(__MODULE__, username: username)
+    %{password: hashed_password} = Repo.get_by(Bai3.Password, number: user.password_number, user_id: user.id)
+    if Bcrypt.verify_pass(password, hashed_password) do
+      Repo.update!(Bai3.User.changeset(user, %{password_number: Enum.random(0..9)}))
+      true
+    else
+      false
+    end
+  end
+
   def register(username, password) do
     user = changeset(%__MODULE__{}, %{username: username, password_number: Enum.random(0..9)})
     passwords = find_passwords(password)
