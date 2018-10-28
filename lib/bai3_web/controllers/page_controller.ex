@@ -1,7 +1,7 @@
 defmodule Bai3Web.PageController do
   use Bai3Web, :controller
 
-  plug :check_logged when action in [:index]
+  plug :check_logged when action in [:index, :change_password]
 
   def index(conn, _params) do
     render conn, "index.html", username: get_session(conn, :username)
@@ -22,6 +22,26 @@ defmodule Bai3Web.PageController do
       {:blocked, time} -> render conn, "login1.html", username: username, subsequence: Bai3.User.fetch_password(username).sequence, error: "Konto czasowo zablokowane. Pozostały czas #{time} sekund"
       false -> render conn, "login1.html", username: username, subsequence: Bai3.User.fetch_password(username).sequence, error: "Złe hasło"
       end
+  end
+
+  def change_password(conn, %{"password" => password, "last_password" => l_password}) do
+    last_password = Bai3.User.fetch_password(get_session(conn, :username))
+    l_password = l_password 
+      |> Enum.sort(fn {a,b}, {c, d} -> a < c end) 
+      |> Enum.map(fn {_, value} -> value end)
+      |> List.to_string()
+    if String.length(password) < 8 or String.length(password) > 16 do
+      render conn, "change_password.html", subsequence: last_password.sequence, error: "Nieprawidłowa długość hasła"
+    else
+      case Bai3.User.change_password(get_session(conn, :username), l_password, password) do
+        :ok -> redirect conn, to: "/"
+        :error -> render conn, "change_password.html", subsequence: last_password.sequence, error: "Niepoprawne stare hasło"
+      end
+    end
+  end
+
+  def change_password(conn, _) do
+    render conn, "change_password.html", subsequence: Bai3.User.fetch_password(get_session(conn, :username)).sequence, error: ""
   end
 
   def login(conn, %{"username" => username}) do

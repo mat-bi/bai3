@@ -29,6 +29,27 @@ defmodule Bai3.User do
       |> Repo.get_by(number: user.password_number, user_id: user.id)
   end
 
+  def change_password(username, last_password, password) do
+    fun = fn ->
+        p = fetch_password(username)
+        user_id = p.user_id
+        if Bcrypt.verify_pass(last_password, p.password) do
+          Repo.delete_all(from password in Bai3.Password, where: password.user_id == ^user_id)
+          find_passwords(password) |> Enum.with_index() |>
+          Enum.each(fn { { sequence, password }, index } ->
+            Bai3.Password.changeset(%Bai3.Password{}, %{number: index, sequence: sequence, password: password, user_id: user_id})
+                |> Repo.insert!()
+          end)
+          :ok
+        else
+            :error
+        end
+    end
+    case Repo.transaction(fun) do
+        {_, value} -> value
+    end
+  end
+
   def login(username, password) do
     create_nonexistent(username)
     user = Repo.get_by(__MODULE__, username: username)
