@@ -7,8 +7,9 @@ defmodule Bai3.User do
   schema "users" do
     field :username, :string
     field :password_number, :integer
-    field :last_invalid_login, :naive_datetime
+    field :last_invalid_login, :utc_datetime
     field :number_of_invalid_logins, :integer
+    field :blocked, :boolean
     field :exists, :boolean
 
     has_many :passwords, Bai3.Password
@@ -29,11 +30,19 @@ defmodule Bai3.User do
   def login(username, password) do
     create_nonexistent(username)
     user = Repo.get_by(__MODULE__, username: username)
+    time = DateTime.diff(DateTime.utc_now(), user.last_invalid_login || DateTime.utc_now()) >= user.number_of_invalid_logins*15
     %{password: hashed_password} = Repo.get_by(Bai3.Password, number: user.password_number, user_id: user.id)
-    if Bcrypt.verify_pass(password, hashed_password) and user.exists do
+
+    cond do
+    Bcrypt.verify_pass(password, hashed_password) and user.exists and time and not user.blocked ->
       Repo.update!(Bai3.User.changeset(user, %{password_number: Enum.random(0..9)}))
       true
-    else
+    user.blocked ->
+      :blocked
+    not time ->
+      { :blocked, user.number_of_invalid_logins*15 - DateTime.diff(DateTime.utc_now(), user.last_invalid_login || DateTime.utc_now())   }
+    true ->
+      Repo.update!(Bai3.User.changeset(user, %{number_of_invalid_logins: user.number_of_invalid_logins+1, last_invalid_login: DateTime.utc_now()}))
       false
     end
   end
