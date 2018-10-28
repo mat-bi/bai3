@@ -21,8 +21,13 @@ defmodule Bai3Web.PageController do
   end
 
   def login(conn, %{"username" => username, "password" => password}) do
+    %{sequence: sequence} = Bai3.User.fetch_password(username)
     password = password 
           |> Enum.sort(fn {a,b}, {c, d} -> a < c end) 
+          |> Enum.filter(fn {a,b} -> 
+            { a, _} = Integer.parse(a)
+            a in sequence   
+          end)
           |> Enum.map(fn {_, value} -> value end)
           |> List.to_string()
     case Bai3.User.login(username, password) do
@@ -31,9 +36,9 @@ defmodule Bai3Web.PageController do
           |> put_session(:username, username)
           |> put_session(:number_of_invalid_logins, number_of_invalid_logins)
           |> redirect(to: "/")
-      :blocked -> render conn, "login1.html", username: username, subsequence: Bai3.User.fetch_password(username).sequence, error: "Konto zablokowane"
-      {:blocked, time} -> render conn, "login1.html", username: username, subsequence: Bai3.User.fetch_password(username).sequence, error: "Konto czasowo zablokowane. Pozostały czas #{time} sekund"
-      false -> render conn, "login1.html", username: username, subsequence: Bai3.User.fetch_password(username).sequence, error: "Złe hasło"
+      :blocked -> render conn, "login1.html", username: username, subsequence: sequence, error: "Konto zablokowane"
+      {:blocked, time} -> render conn, "login1.html", username: username, subsequence: sequence, error: "Konto czasowo zablokowane. Pozostały czas #{time} sekund"
+      false -> render conn, "login1.html", username: username, subsequence: sequence, error: "Złe hasło"
       end
   end
 
