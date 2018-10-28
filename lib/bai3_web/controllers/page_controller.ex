@@ -7,6 +7,19 @@ defmodule Bai3Web.PageController do
     render conn, "index.html", username: get_session(conn, :username)
   end
 
+  def settings(conn, %{"max_invalid_logins" => logins} = params) do
+    {:ok, user} = Bai3.User
+      |> Bai3.Repo.get_by(username: get_session(conn, :username))
+      |> Bai3.User.changeset(%{max_invalid_logins: logins, blocking_enabled: Map.has_key?(params, "blocking_enabled")})
+      |> Bai3.Repo.update()
+
+    redirect conn, to: "/"
+  end
+
+  def settings(conn, _) do
+    render conn, "settings.html", user: Bai3.Repo.get_by(Bai3.User, username: get_session(conn, :username)), logins: get_session(conn, :number_of_invalid_logins)
+  end
+
   def login(conn, %{"username" => username, "password" => password}) do
     password = password 
           |> Enum.sort(fn {a,b}, {c, d} -> a < c end) 

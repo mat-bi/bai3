@@ -1,2 +1,4 @@
 Zalogowany jako <%= @username %><br/>
+<a href="/change_password">Zmień hasło</a><br/>
+<a href="/settings">Ustawienia konta</a><br/>
 <a href="/logout">Wyloguj</a>

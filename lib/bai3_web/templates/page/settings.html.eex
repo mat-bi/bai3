@@ -1,0 +1,10 @@
+<ul>
+<li>Liczba nieudanych logowań: <%= @logins %></li>
+<li>Ostatnie udane logowanie: <%= @user.last_valid_login %><br/>
+<li>Ostatnie nieudane logowanie: <%= @user.last_invalid_login %></li>
+</ul>
+<form method="get">
+Blokowanie konta: <input type="checkbox" name="blocking_enabled" <%= if @user.blocking_enabled do %> checked="checked" <% end %> /><br/>
+Liczba nieudanych logowań do blokady: <input type="number" name="max_invalid_logins" value="<%= @user.max_invalid_logins %>"/><br/>
+<input type="submit" value="Zmień">
+</form>

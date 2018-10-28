@@ -8,6 +8,7 @@ defmodule Bai3.User do
     field :username, :string
     field :password_number, :integer
     field :last_invalid_login, :utc_datetime
+    field :last_valid_login, :utc_datetime
     field :number_of_invalid_logins, :integer
     field :max_invalid_logins, :integer
     field :blocking_enabled, :boolean
@@ -19,7 +20,7 @@ defmodule Bai3.User do
 
   def changeset(user, params) do
     user
-      |> cast(params, [:username, :password_number, :last_invalid_login, :number_of_invalid_logins, :exists, :max_invalid_logins, :blocking_enabled, :blocked])
+      |> cast(params, [:username, :password_number, :last_invalid_login, :number_of_invalid_logins, :exists, :max_invalid_logins, :blocking_enabled, :blocked, :last_valid_login])
   end
 
   def fetch_password(username) do
@@ -58,7 +59,7 @@ defmodule Bai3.User do
 
     cond do
     Bcrypt.verify_pass(password, hashed_password) and user.exists and time and not user.blocked ->
-      Repo.update!(Bai3.User.changeset(user, %{password_number: Enum.random(0..9), number_of_invalid_logins: 0}))
+      Repo.update!(Bai3.User.changeset(user, %{password_number: Enum.random(0..9), number_of_invalid_logins: 0, last_valid_login: DateTime.utc_now()}))
       { true, user.number_of_invalid_logins }
     user.blocked ->
       :blocked
