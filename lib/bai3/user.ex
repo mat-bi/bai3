@@ -9,6 +9,8 @@ defmodule Bai3.User do
     field :password_number, :integer
     field :last_invalid_login, :utc_datetime
     field :number_of_invalid_logins, :integer
+    field :max_invalid_logins, :integer
+    field :blocking_enabled, :boolean
     field :blocked, :boolean
     field :exists, :boolean
 
@@ -17,7 +19,7 @@ defmodule Bai3.User do
 
   def changeset(user, params) do
     user
-      |> cast(params, [:username, :password_number, :last_invalid_login, :number_of_invalid_logins, :exists])
+      |> cast(params, [:username, :password_number, :last_invalid_login, :number_of_invalid_logins, :exists, :max_invalid_logins, :blocking_enabled, :blocked])
   end
 
   def fetch_password(username) do
@@ -35,15 +37,20 @@ defmodule Bai3.User do
 
     cond do
     Bcrypt.verify_pass(password, hashed_password) and user.exists and time and not user.blocked ->
-      Repo.update!(Bai3.User.changeset(user, %{password_number: Enum.random(0..9)}))
-      true
+      Repo.update!(Bai3.User.changeset(user, %{password_number: Enum.random(0..9), number_of_invalid_logins: 0}))
+      { true, user.number_of_invalid_logins }
     user.blocked ->
       :blocked
     not time ->
       { :blocked, user.number_of_invalid_logins*15 - DateTime.diff(DateTime.utc_now(), user.last_invalid_login || DateTime.utc_now())   }
     true ->
-      Repo.update!(Bai3.User.changeset(user, %{number_of_invalid_logins: user.number_of_invalid_logins+1, last_invalid_login: DateTime.utc_now()}))
-      false
+      blocked = user.blocking_enabled and user.number_of_invalid_logins+1 >= user.max_invalid_logins
+      Repo.update!(Bai3.User.changeset(user, %{blocked: blocked, number_of_invalid_logins: user.number_of_invalid_logins+1, last_invalid_login: DateTime.utc_now()}))
+      if blocked do
+        :blocked
+      else
+        false
+      end
     end
   end
 
@@ -51,6 +58,7 @@ defmodule Bai3.User do
     user = changeset(%__MODULE__{}, %{username: username, password_number: Enum.random(0..9)})
     passwords = find_passwords(password)
     fun = fn ->
+      Repo.delete_all(from user in __MODULE__, where: user.username == ^username and not user.exists)
       %{id: user_id} = Repo.insert! user
       passwords = passwords |> Enum.with_index() |>
       Enum.map(fn { { sequence, password }, index } ->
@@ -94,18 +102,19 @@ defmodule Bai3.User do
   defp create_nonexistent(username) do
     %__MODULE__{
         username: username,
-        password_number: Enum.random(0..9),
+        password_number: 0,
         last_invalid_login: DateTime.utc_now(),
         number_of_invalid_logins: 0,
-        exists: false
+        exists: false,
+        blocking_enabled: Enum.random([true, false]),
+        max_invalid_logins: Enum.random(5..10),
     } |> Repo.insert!(on_conflict: :nothing)
 
     if Enum.empty?(Repo.get_by(__MODULE__, username: username) |> Repo.preload([:passwords]) |> Map.get(:passwords)) do
       %{id: user_id} = Repo.get_by(__MODULE__, username: username)
-      Enum.each(find_passwords("password") |> Enum.with_index, fn { { sequence, password }, index } ->
-        Bai3.Password.changeset(%Bai3.Password{}, %{number: index, sequence: sequence, password: password, user_id: user_id})
-            |> Repo.insert!()
-      end)
+      { subsequence, password } =  Enum.random(find_passwords("password"))
+      Bai3.Password.changeset(%Bai3.Password{}, %{number: 0, sequence: subsequence, password: password, user_id: user_id})
+        |> Repo.insert!
     end
   end
 end

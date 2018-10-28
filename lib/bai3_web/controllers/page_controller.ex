@@ -13,12 +13,13 @@ defmodule Bai3Web.PageController do
           |> Enum.map(fn {_, value} -> value end)
           |> List.to_string()
     case Bai3.User.login(username, password) do
-      true ->
+      { true, number_of_invalid_logins } ->
         conn
           |> put_session(:username, username)
+          |> put_session(:number_of_invalid_logins, number_of_invalid_logins)
           |> redirect(to: "/")
       :blocked -> render conn, "login1.html", username: username, subsequence: Bai3.User.fetch_password(username).sequence, error: "Konto zablokowane"
-      {:blocked, time} -> render conn, "login1.html", username: username, subsequence: Bai3.User.fetch_password(username).sequence, error: "Konto zablokowane. Pozostały czas #{time} sekund"
+      {:blocked, time} -> render conn, "login1.html", username: username, subsequence: Bai3.User.fetch_password(username).sequence, error: "Konto czasowo zablokowane. Pozostały czas #{time} sekund"
       false -> render conn, "login1.html", username: username, subsequence: Bai3.User.fetch_password(username).sequence, error: "Złe hasło"
       end
   end

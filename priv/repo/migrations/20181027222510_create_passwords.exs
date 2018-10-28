@@ -3,7 +3,7 @@ defmodule Bai3.Repo.Migrations.CreatePasswords do
 
   def change do
     create table(:passwords) do
-      add :user_id, references :users
+      add :user_id, references(:users, on_delete: :delete_all)
       add :password, :string
       add :number, :integer
       add :sequence, {:array, :integer}
